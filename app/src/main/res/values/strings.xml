@@ -8,4 +8,6 @@
     <string name="dream_item_title">Dream Title</string>
     <string name="dream_item_date">Dream Date</string>
     <string name="handcuffs">handcuffs</string>
+    <string name="share_dream">share_dream</string>
+    <string name="take_dream_photo">take_dream_photo</string>
 </resources>

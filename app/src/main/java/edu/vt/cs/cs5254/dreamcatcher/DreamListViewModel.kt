@@ -10,7 +10,7 @@ class DreamListViewModel : ViewModel() {
     fun addDream(dreamWithEntries: DreamWithEntries) {
         val entries = mutableListOf<DreamEntry>()
         entries += DreamEntry(kind = DreamEntryKind.CONCEIVED, dreamId = dreamWithEntries.dream.id)
-//        dreamWithEntries.dreamEntries = entries
+        dreamWithEntries.dreamEntries = entries
         dreamRepository.addDreamWithEntries(dreamWithEntries)
     }
 

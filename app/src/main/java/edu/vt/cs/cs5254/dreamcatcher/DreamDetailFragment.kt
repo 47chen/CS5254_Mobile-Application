@@ -19,6 +19,7 @@ import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.viewModels
 import edu.vt.cs.cs5254.dreamcatcher.databinding.FragmentDreamDetailBinding
 import androidx.lifecycle.Observer
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import edu.vt.cs.cs5254.dreamcatcher.databinding.ListItemDreamEntryBinding
@@ -35,7 +36,7 @@ private const val REFLECTION_BUTTON_COLOR = "#c9aad9"
 class DreamDetailFragment : Fragment() {
 
     private lateinit var dreamWithEntries: DreamWithEntries
-    private lateinit var entryButtonList: List<Button>
+//    private lateinit var entryButtonList: List<Button>
     private var _binding: FragmentDreamDetailBinding? = null
     // when fragment is not attached to the activity, it should be set to null
     private val binding: FragmentDreamDetailBinding
@@ -62,57 +63,21 @@ class DreamDetailFragment : Fragment() {
         val view = binding.root
         binding.dreamEntryRecyclerView.layoutManager = LinearLayoutManager(context)
 
-        updateUI()
-//        binding.dreamTitleText.setText(viewModel.dreamWithEntries.dream.title)
-
-//        binding.dreamEntry0Button.apply {
-//            text = dreamWithEntries.dream.date.toString()
-//            isEnabled = true
-//        }
-
-
-        if (dreamWithEntries.dream.isFulfilled) {
-            binding.dreamFulfilledCheckbox.isChecked = dreamWithEntries.dream.isFulfilled
-            binding.dreamDeferredCheckbox.isEnabled = false
-        }
-
-        if (dreamWithEntries.dream.isDeferred) {
-            binding.dreamDeferredCheckbox.isChecked = dreamWithEntries.dream.isDeferred
-            binding.dreamFulfilledCheckbox.isEnabled = false
-        }
-
-        entryButtonList = binding.root
-            .children
-            .toList()
-            .filterIsInstance<Button>()
-
-
-        val entryButtonListPair = entryButtonList.zip(dreamWithEntries.dreamEntries)
-        entryButtonListPair.forEach {
-                (btn, ent) ->
-            btn.visibility = View.VISIBLE
-
-            when(ent.kind) {
-                DreamEntryKind.CONCEIVED -> {
-                    btn.text = "CONCEIVED"
-                    setButtonColor(btn, CONCEIVED_BUTTON_COLOR)
-                    btn.setTextColor(Color.BLACK)
-                } DreamEntryKind.DEFERRED -> {
-                btn.text = "DEFERRED"
-                setButtonColor(btn, DEFERRED_BUTTON_COLOR)
-                btn.setTextColor(Color.BLACK)
-            } DreamEntryKind.FULFILLED -> {
-                btn.text = "FULFILLED"
-                setButtonColor(btn, FULFILLED_BUTTON_COLOR)
-                btn.setTextColor(Color.BLACK)
-            } DreamEntryKind.REFLECTION -> {
-                val time = DateFormat.format("MMM dd, yyyy", ent.date)
-                btn.text = time.toString() + ": " + ent.text
-                setButtonColor(btn, REFLECTION_BUTTON_COLOR)
-                btn.setTextColor(Color.BLACK)
-            }
+        // itemTouchHelper CallBack For RecyclerView
+        val swipeToDeleteCallback = object : SwipeToDeleteCallback() {
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val pos = viewHolder.absoluteAdapterPosition
+                val swipedDreamEntry = dreamWithEntries.dreamEntries[pos]
+                if (swipedDreamEntry.kind == DreamEntryKind.REFLECTION) {
+                    dreamWithEntries.dreamEntries -= swipedDreamEntry
+                }
+                updateUI()
             }
         }
+
+        // attach ItemTouchHelper to RecyclerView
+        val itemTouchHelper = ItemTouchHelper(swipeToDeleteCallback)
+        itemTouchHelper.attachToRecyclerView(binding.dreamEntryRecyclerView)
 
 
         return view
@@ -221,7 +186,6 @@ class DreamDetailFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
     private fun refreshDreamEntry(dreamEntry: DreamEntry, button: Button) {
         button.visibility = View.VISIBLE
         when (dreamEntry.kind) {
@@ -281,6 +245,17 @@ class DreamDetailFragment : Fragment() {
         viewModel.saveDream(dreamWithEntries)
     }
 
+    // SwipeToDelete
+    abstract class SwipeToDeleteCallback : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+        override fun onMove(
+            recyclerView: RecyclerView,
+            viewHolder: RecyclerView.ViewHolder,
+            target: RecyclerView.ViewHolder
+        ): Boolean {
+            return false
+        }
+    }
+
     companion object {
         fun newInstance(dreamId: UUID): DreamDetailFragment {
             val args = Bundle().apply {
@@ -290,13 +265,6 @@ class DreamDetailFragment : Fragment() {
                 arguments = args
             }
         }
-    }
-
-    private fun setButtonColor(button: Button, colorString: String) {
-        button.backgroundTintList =
-            ColorStateList.valueOf(Color.parseColor(colorString))
-        button.setTextColor(Color.WHITE)
-        button.alpha = 1f
     }
 
 }

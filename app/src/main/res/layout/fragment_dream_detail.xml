@@ -85,7 +85,7 @@
 
 
         <LinearLayout
-            android:id="@+id/dream_entry_buttons"
+            android:id="@+id/dream_entry_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
