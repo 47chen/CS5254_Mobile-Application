@@ -214,7 +214,24 @@ class DreamDetailFragment : Fragment() {
     //TODO: setOnClickListener / setFragmentResultListener
         // need button and REQUEST_KEY
         // Drk use data in criminal, we need DreamEntry button
+    binding.addReflectionButton.setOnClickListener{
+        AddReflectionDialog.newInstance(REQUEST_KEY_ADD_REFLECTION)
+            .show(parentFragmentManager, REQUEST_KEY_ADD_REFLECTION)
+    }
 
+    parentFragmentManager.setFragmentResultListener(
+        REQUEST_KEY_ADD_REFLECTION,
+        viewLifecycleOwner)
+        {_, bundle ->
+            val reflectionText = bundle.getSerializable(BUNDLE_KEY_REFLECTION_TEXT) as String
+            val newReflection = DreamEntry(
+                kind = DreamEntryKind.REFLECTION,
+                dreamId = dreamWithEntries.dream.id,
+                text = reflectionText
+            )
+            dreamWithEntries.dreamEntries += newReflection
+            updateUI()
+        }
 
 
     }

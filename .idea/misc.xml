@@ -6,7 +6,7 @@
         <entry key="app/src/main/res/drawable-v24/ic_launcher_foreground.xml" value="0.1595" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.15185185185185185" />
         <entry key="app/src/main/res/layout/dialog_add_reflection.xml" value="0.1685185185185185" />
-        <entry key="app/src/main/res/layout/fragment_dream_detail.xml" value="0.25" />
+        <entry key="app/src/main/res/layout/fragment_dream_detail.xml" value="0.1" />
         <entry key="app/src/main/res/layout/fragment_dream_list.xml" value="0.2874873353596758" />
         <entry key="app/src/main/res/layout/list_item_dream.xml" value="0.21944444444444444" />
         <entry key="app/src/main/res/menu/fragment_dream_detail.xml" value="0.1685185185185185" />
