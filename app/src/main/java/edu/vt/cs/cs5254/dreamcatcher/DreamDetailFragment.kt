@@ -19,6 +19,9 @@ import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.viewModels
 import edu.vt.cs.cs5254.dreamcatcher.databinding.FragmentDreamDetailBinding
 import androidx.lifecycle.Observer
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import edu.vt.cs.cs5254.dreamcatcher.databinding.ListItemDreamEntryBinding
 import java.util.*
 
 
@@ -32,21 +35,16 @@ private const val REFLECTION_BUTTON_COLOR = "#c9aad9"
 class DreamDetailFragment : Fragment() {
 
     private lateinit var dreamWithEntries: DreamWithEntries
-
+    private lateinit var entryButtonList: List<Button>
     private var _binding: FragmentDreamDetailBinding? = null
     // when fragment is not attached to the activity, it should be set to null
     private val binding: FragmentDreamDetailBinding
         get() = _binding!!
-    // !! make sure this cant not be null => don't want this binding is null but _binding is null
-
-//    private val viewModel: DreamDetailViewModel by lazy {
-//        ViewModelProvider(this).get(DreamDetailViewModel::class.java)
-//    }
-    // work same as above
     private val viewModel: DreamDetailViewModel by viewModels()
 
-//    private var entBtn = viewModel.dreamWithEntries.dreamEntries
-    private lateinit var entryButtonList: List<Button>
+    private var adapter: DreamEntryAdapter? = null
+
+
 
 
 
@@ -55,12 +53,14 @@ class DreamDetailFragment : Fragment() {
         dreamWithEntries = DreamWithEntries(Dream(), emptyList())
         val dreamId: UUID = arguments?.getSerializable(ARG_DREAM_ID) as UUID
         viewModel.loadDream(dreamId)
+        setHasOptionsMenu(true)
     }
 
     override fun onCreateView(inflater: LayoutInflater,
                               container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentDreamDetailBinding.inflate(inflater, container, false)
         val view = binding.root
+        binding.dreamEntryRecyclerView.layoutManager = LinearLayoutManager(context)
 
         updateUI()
 //        binding.dreamTitleText.setText(viewModel.dreamWithEntries.dream.title)
@@ -122,10 +122,8 @@ class DreamDetailFragment : Fragment() {
         binding.dreamTitleText.setText(dreamWithEntries.dream.title)
         binding.dreamFulfilledCheckbox.isChecked = dreamWithEntries.dream.isFulfilled
         binding.dreamDeferredCheckbox.isChecked = dreamWithEntries.dream.isDeferred
-        binding.dreamEntry0Button.apply {
-            text = dreamWithEntries.dream.date.toString()
-            isEnabled = true
-        }
+        adapter = DreamEntryAdapter(dreamWithEntries.dreamEntries)
+        binding.dreamEntryRecyclerView.adapter = adapter
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -146,74 +144,57 @@ class DreamDetailFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-//        val titleWatcher = object : TextWatcher {
-//            override fun beforeTextChanged(
-//                sequence: CharSequence?, start: Int, count: Int, after: Int) { }
-//            override fun onTextChanged(sequence: CharSequence?,
-//                                       start: Int, before: Int, count: Int) {
-//                dreamWithEntries.dream.title = sequence.toString()
-//            }
-//            override fun afterTextChanged(sequence: Editable?) { }
-//        }
-//        binding.dreamTitleText.addTextChangedListener(titleWatcher)
-        binding.dreamTitleText.doOnTextChanged{text, start, before, count ->
+        binding.dreamTitleText.doOnTextChanged { text, start, before, count ->
             dreamWithEntries.dream.title = text.toString()
         }
 
-        // When the fulfilled checkbox is check, the deferred checkbox should be
-        // disable, and vice-versa
-
         binding.dreamFulfilledCheckbox.apply {
-            setOnCheckedChangeListener { _, isChecked ->
+            setOnClickListener {
                 dreamWithEntries.dream.isFulfilled = isChecked
-                binding.dreamDeferredCheckbox.apply {
-                    isEnabled = false
+                if (isChecked) {
+                    binding.dreamDeferredCheckbox.isEnabled = false
+                    binding.addReflectionButton.isEnabled = false
+                    if (!dreamWithEntries.dreamEntries.any { dreamEntry -> dreamEntry.kind == DreamEntryKind.FULFILLED }) {
+                        dreamWithEntries.dreamEntries += DreamEntry(
+                            kind = DreamEntryKind.FULFILLED,
+                            dreamId = dreamWithEntries.dream.id
+                        )
+                    }
+                } else {
+                    binding.dreamDeferredCheckbox.isEnabled = true
+                    binding.addReflectionButton.isEnabled = true
+                    dreamWithEntries.dreamEntries =
+                        dreamWithEntries.dreamEntries.filter { dreamEntry ->
+                            dreamEntry.kind != DreamEntryKind.FULFILLED
+                        }
                 }
+
+                updateUI()
             }
-        }
-        binding.dreamDeferredCheckbox.apply {
-            setOnCheckedChangeListener { _, isChecked ->
-                dreamWithEntries.dream.isDeferred = isChecked
-                binding.dreamFulfilledCheckbox.apply {
-                    isEnabled = false
-                }
-            }
-        }
-
-        binding.dreamFulfilledCheckbox.apply {
-            setOnCheckedChangeListener { _, isChecked ->
-                dreamWithEntries.dream.isFulfilled = isChecked
-
-                if(isChecked){
-                    val dreamId = dreamWithEntries.dream.id
-                    dreamWithEntries.dreamEntries += DreamEntry(kind = DreamEntryKind.FULFILLED,dreamId = dreamId)
-                }else{
-                    val newEntry = dreamWithEntries.dreamEntries.toMutableList()
-                    newEntry.removeLast()
-                    dreamWithEntries.dreamEntries = newEntry
-                }
-
-                refreshView()
-            }  //viewModel.crime.isSolved = isChecked }
         }
 
         binding.dreamDeferredCheckbox.apply {
-            setOnCheckedChangeListener { _, isChecked ->
+            setOnClickListener {
                 dreamWithEntries.dream.isDeferred = isChecked
-                if(isChecked){
-                    val dreamId = dreamWithEntries.dream.id
-                    dreamWithEntries.dreamEntries += DreamEntry(kind = DreamEntryKind.DEFERRED,dreamId = dreamId)
-                }else{
-                    val newEntry = dreamWithEntries.dreamEntries.toMutableList()
-                    newEntry.removeLast()
-                    dreamWithEntries.dreamEntries = newEntry
+                if (isChecked) {
+                    binding.dreamFulfilledCheckbox.isEnabled = false
+                    if (!dreamWithEntries.dreamEntries.any { dreamEntry -> dreamEntry.kind == DreamEntryKind.DEFERRED }) {
+                        dreamWithEntries.dreamEntries += DreamEntry(
+                            kind = DreamEntryKind.DEFERRED,
+                            dreamId = dreamWithEntries.dream.id
+                        )
+                    }
+                } else {
+                    binding.dreamFulfilledCheckbox.isEnabled = true
+                    dreamWithEntries.dreamEntries =
+                        dreamWithEntries.dreamEntries.filter { dreamEntry ->
+                            dreamEntry.kind != DreamEntryKind.DEFERRED
+                        }
                 }
-                refreshView()
+                updateUI()
             }
         }
-    //TODO: setOnClickListener / setFragmentResultListener
-        // need button and REQUEST_KEY
-        // Drk use data in criminal, we need DreamEntry button
+
     binding.addReflectionButton.setOnClickListener{
         AddReflectionDialog.newInstance(REQUEST_KEY_ADD_REFLECTION)
             .show(parentFragmentManager, REQUEST_KEY_ADD_REFLECTION)
@@ -236,55 +217,64 @@ class DreamDetailFragment : Fragment() {
 
     }
 
-    private fun refreshView() {
-
-        when {
-            dreamWithEntries.dream.isFulfilled -> {
-                binding.dreamDeferredCheckbox.isEnabled = false
-            }
-            dreamWithEntries.dream.isDeferred -> {
-                binding.dreamFulfilledCheckbox.isEnabled = false
-            }
-            else -> {
-                binding.dreamFulfilledCheckbox.isEnabled = true
-                binding.dreamDeferredCheckbox.isEnabled = true
-            }
-        }
-
-        entryButtonList.forEach { it.visibility = View.INVISIBLE }
-
-        entryButtonList.zip(dreamWithEntries.dreamEntries) {
-                btn, ent -> btn.visibility = View.VISIBLE
-            when (ent.kind) {
-                DreamEntryKind.CONCEIVED -> {
-                    btn.text = "CONCEIVED"
-                    setButtonColor(btn, CONCEIVED_BUTTON_COLOR)
-                    btn.setTextColor(Color.BLACK)
-                }
-                DreamEntryKind.REFLECTION -> {
-                    val time = DateFormat.format("MMM dd, yyyy", ent.date)
-                    btn.text = time.toString() + ": " + ent.text
-                    setButtonColor(btn, REFLECTION_BUTTON_COLOR)
-                    btn.setTextColor(Color.BLACK)
-                }
-                DreamEntryKind.FULFILLED -> {
-                    btn.text = "FULFILLED"
-                    setButtonColor(btn, FULFILLED_BUTTON_COLOR)
-                    btn.setTextColor(Color.BLACK)
-                }
-                DreamEntryKind.DEFERRED -> {
-                    btn.text = "DEFERRED"
-                    setButtonColor(btn, DEFERRED_BUTTON_COLOR)
-                    btn.setTextColor(Color.BLACK)
-                }
-            }
-        }
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
+
+    private fun refreshDreamEntry(dreamEntry: DreamEntry, button: Button) {
+        button.visibility = View.VISIBLE
+        when (dreamEntry.kind) {
+            DreamEntryKind.CONCEIVED -> {
+                button.text = DreamEntryKind.CONCEIVED.name
+                button.backgroundTintList =
+                    ColorStateList.valueOf(Color.parseColor(CONCEIVED_BUTTON_COLOR))
+            }
+            DreamEntryKind.FULFILLED -> {
+                button.text = DreamEntryKind.FULFILLED.name
+                button.backgroundTintList =
+                    ColorStateList.valueOf(Color.parseColor(FULFILLED_BUTTON_COLOR))
+                button.setTextColor(Color.WHITE)
+            }
+            DreamEntryKind.DEFERRED -> {
+                button.text = DreamEntryKind.DEFERRED.name
+                button.backgroundTintList =
+                    ColorStateList.valueOf(Color.parseColor(DEFERRED_BUTTON_COLOR))
+                button.setTextColor(Color.WHITE)
+            }
+            else -> {
+                val buttonText = DateFormat.format("MMM dd, yyyy", dreamEntry.date).toString() +
+                        ": " + dreamEntry.text
+                button.text = buttonText
+                button.backgroundTintList =
+                    ColorStateList.valueOf(Color.parseColor(REFLECTION_BUTTON_COLOR))
+                button.setTextColor(Color.BLACK)
+            }
+        }
+    }
+
+    inner class DreamEntryHolder(val itemBinding: ListItemDreamEntryBinding) :
+        RecyclerView.ViewHolder(itemBinding.root) {
+        fun bind(dreamEntry: DreamEntry) {
+            refreshDreamEntry(dreamEntry, itemBinding.dreamEntryButton)
+        }
+    }
+
+    private inner class DreamEntryAdapter(var dreamEntries: List<DreamEntry>) :
+        RecyclerView.Adapter<DreamEntryHolder>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DreamEntryHolder {
+            val itemBinding = ListItemDreamEntryBinding
+                .inflate(LayoutInflater.from(parent.context), parent, false)
+            return DreamEntryHolder(itemBinding)
+        }
+
+        override fun getItemCount() = dreamEntries.size
+        override fun onBindViewHolder(holder: DreamEntryHolder, position: Int) {
+            val dreamEntry = dreamEntries[position]
+            holder.bind(dreamEntry)
+        }
+    }
+
 
     override fun onStop() {
         super.onStop()
