@@ -28,9 +28,6 @@ class DreamListFragment : Fragment() {
     private var adapter: DreamAdapter? = null
     private var _binding: FragmentDreamListBinding? = null
     private val binding get() = _binding!!
-//    private val vm: DreamListViewModel by lazy {
-//        ViewModelProvider(this).get(DreamListViewModel::class.java)
-//    }
     private val vm: DreamListViewModel by viewModels()
 
     override fun onAttach(context: Context) {
@@ -99,7 +96,7 @@ class DreamListFragment : Fragment() {
         binding.dreamRecyclerView.adapter = adapter
     }
 
-    // CrimeHolder && CrimeAdapter
+    // DreamHolder && DreamAdapter
     // holder => hold a list of dream items
 
     public inner class DreamHolder(val itemBinding: ListItemDreamBinding)
@@ -129,15 +126,6 @@ class DreamListFragment : Fragment() {
                     itemBinding.dreamItemImage.tag = 0
                 }
             }
-//            itemBinding.dreamItemImage.visibility = if (dream.isFulfilled) {
-//                View.VISIBLE
-//            }
-////            else if (dream.isDeferred) {
-////                View.VISIBLE
-////            }
-//            else {
-//                View.INVISIBLE
-//            }
         }
         override fun onClick(v: View) {
             callbacks?.onDreamSelected(dream.id)
